@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://codesinfo-abraji-oficina-grupo-4.burgos.chatgpt.site"),
-  title: "WW Oficina Editorial — Protótipo",
-  description: "Ferramenta de trabalho para transformar insumos autorizados em uma prévia editorial estruturada.",
+  title: "WW Oficina Editorial — audiovisual",
+  description: "Protótipo para transformar áudio ou vídeo em rascunho, transcrição e trechos sugeridos.",
   openGraph: {
     title: "WW Oficina Editorial — Protótipo",
     description: "De insumos autorizados a uma prévia editorial estruturada, sem publicação automática.",
