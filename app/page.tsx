@@ -1,18 +1,124 @@
 "use client";
-import { FormEvent,useState } from "react";
-type Link={id:number,url:string}; type Rec={id:number,url:string,reason:string};
-const id=()=>Date.now()+Math.random();const valid=(s:string)=>{try{const u=new URL(s);return ["http:","https:"].includes(u.protocol)}catch{return false}};
-const transcript=[{t:"00:00",text:"[Transcrição demonstrativa] A apresentadora introduz o tema e explica o contexto do debate."},{t:"00:18",text:"Marina Costa, analista convidada: “O ponto central é entender como a decisão afeta a vida cotidiana.”"},{t:"00:42",text:"A análise apresenta os antecedentes e diferencia fatos confirmados de hipóteses ainda em apuração."},{t:"01:16",text:"Rafael Lima, pesquisador: “Os próximos indicadores serão decisivos para avaliar o alcance da mudança.”"},{t:"01:48",text:"O bloco conclui com os cenários que a redação deverá acompanhar nas próximas semanas."}];
-export default function Home(){const [step,setStep]=useState<1|2|3>(1);const [file,setFile]=useState<File|null>(null);const [mediaUrl,setMediaUrl]=useState("");const [cnn,setCnn]=useState<Link[]>([{id:1,url:""}]);const [relevance,setRelevance]=useState("");const [message,setMessage]=useState("");const [recs,setRecs]=useState<Rec[]>([{id:1,url:"",reason:""}]);const [errors,setErrors]=useState<string[]>([]);const [progress,setProgress]=useState(0);const [printMode,setPrintMode]=useState<"draft"|"transcript"|null>(null);function check(){const e=[] as string[];if(!file&&!valid(mediaUrl))e.push("Envie um arquivo de áudio/vídeo ou informe um link público válido.");if(mediaUrl&&/drive\.google/.test(mediaUrl)&&!mediaUrl.includes("/file/d/"))e.push("O link do Drive parece exigir permissão. Use um arquivo com acesso público.");if(!cnn.length||cnn.some(x=>!valid(x.url)))e.push("Todos os conteúdos CNN precisam de links válidos.");if(relevance.trim().length<20)e.push("Explique a relevância em pelo menos 20 caracteres.");if(message.trim().length<20)e.push("Defina a mensagem principal em pelo menos 20 caracteres.");if(!recs.length||recs.some(r=>!valid(r.url)||r.reason.trim().length<12))e.push("Cada recomendação precisa de link válido e justificativa.");setErrors(e);return !e.length}function submit(e:FormEvent){e.preventDefault();if(!check())return;setStep(2);setProgress(12);[30,55,78,100].forEach((p,i)=>setTimeout(()=>setProgress(p),500*(i+1)));setTimeout(()=>{setStep(3);window.scrollTo({top:0})},2500)}function pdf(mode:"draft"|"transcript"){setPrintMode(mode);setTimeout(()=>window.print(),120)}return <main className={printMode?`print-${printMode}`:""}>
-<div className="demo"><b>PROTÓTIPO PÚBLICO</b><span>A transcrição, os timecodes e o conteúdo gerado são demonstrativos — não vieram do arquivo enviado.</span></div><header><a className="brand" href="#"><span>WW</span>OFICINA EDITORIAL</a><small>Nada é armazenado ou publicado automaticamente</small></header>
-<div className="steps"><div className={step===1?"active":step>1?"done":""}><span>01</span><b>Insumos</b></div><i/><div className={step===2?"active":step>2?"done":""}><span>02</span><b>Processamento</b></div><i/><div className={step===3?"active":""}><span>03</span><b>Prévia e PDFs</b></div></div>
-{step===1&&<section className="workspace"><div className="intro"><p className="eyebrow">NOVA PÁGINA DE APROFUNDAMENTO</p><h1>Do audiovisual ao<br/><em>rascunho estruturado.</em></h1><p>Reúna material autorizado, contexto e recomendações. Esta demonstração simula a transcrição e organiza uma prévia para revisão humana.</p></div><form onSubmit={submit}>
-<Card n="1" title="Material de origem" desc="Envie áudio ou vídeo, ou use um link público aberto."><div className="origin-grid"><label className="upload"><input type="file" accept="audio/*,video/*,.mp3,.mpeg" onChange={e=>setFile(e.target.files?.[0]||null)}/><span>↑</span><b>{file?.name||"Selecionar arquivo"}</b><small>MP3, MPEG, MP4, MOV ou WebM</small></label><div className="or">OU</div><label className="url-field"><b>Link público de áudio ou vídeo</b><input value={mediaUrl} onChange={e=>{setMediaUrl(e.target.value);if(e.target.value)setFile(null)}} placeholder="YouTube, Google Drive público ou link direto"/><small>Links protegidos por login ou permissão serão recusados.</small></label></div></Card>
-<Card n="2" title="Conteúdos CNN selecionados" desc="Inclua os conteúdos que contextualizam a pauta.">{cnn.map((x,i)=><div className="row" key={x.id}><input value={x.url} onChange={e=>setCnn(cnn.map(v=>v.id===x.id?{...v,url:e.target.value}:v))} placeholder={`Link CNN ${i+1}`}/>{cnn.length>1&&<button type="button" onClick={()=>setCnn(cnn.filter(v=>v.id!==x.id))}>Remover</button>}</div>)}<button type="button" className="add" onClick={()=>setCnn([...cnn,{id:id(),url:""}])}>＋ Adicionar conteúdo</button></Card>
-<Card n="3" title="Orientação editorial" desc="Respostas obrigatórias que guiam o rascunho."><label className="question"><b>Por que este tema é relevante para o público?</b><textarea value={relevance} onChange={e=>setRelevance(e.target.value)} placeholder="Explique impacto, urgência ou contexto…"/></label><label className="question"><b>Qual é a principal mensagem desta cobertura?</b><textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="Resuma o ponto que não pode se perder…"/></label></Card>
-<Card n="4" title="Para aprofundar" desc="Cada recomendação precisa de link e justificativa.">{recs.map((r,i)=><div className="rec" key={r.id}><div><b>RECOMENDAÇÃO {i+1}</b>{recs.length>1&&<button type="button" onClick={()=>setRecs(recs.filter(v=>v.id!==r.id))}>Remover</button>}</div><input value={r.url} onChange={e=>setRecs(recs.map(v=>v.id===r.id?{...v,url:e.target.value}:v))} placeholder="Link da leitura"/><textarea value={r.reason} onChange={e=>setRecs(recs.map(v=>v.id===r.id?{...v,reason:e.target.value}:v))} placeholder="Por que vale a leitura?"/></div>)}<button className="add" type="button" onClick={()=>setRecs([...recs,{id:id(),url:"",reason:""}])}>＋ Adicionar recomendação</button></Card>{errors.length>0&&<div className="errors"><b>Revise antes de gerar:</b><ul>{errors.map(e=><li key={e}>{e}</li>)}</ul></div>}<div className="submit"><p>A demonstração não envia seu arquivo a nenhum serviço.</p><button>Gerar página →</button></div></form></section>}
-{step===2&&<section className="processing"><div className="wave"><i/><i/><i/><i/><i/><i/><i/></div><p className="eyebrow">PROCESSAMENTO DEMONSTRATIVO</p><h1>Organizando o material</h1><p>Simulando transcrição, timecodes e seleção de trechos. O arquivo não é analisado nesta versão pública.</p><div className="progress"><i style={{width:`${progress}%`}}/></div><div className="process-list"><span className={progress>=30?"done":""}>✓ Validar insumos</span><span className={progress>=55?"done":""}>✓ Transcrever material</span><span className={progress>=78?"done":""}>✓ Sugerir trechos</span><span className={progress>=100?"done":""}>✓ Estruturar rascunho</span></div></section>}
-{step===3&&<section className="result"><div className="result-head"><button onClick={()=>{setStep(1);setPrintMode(null)}}>← Editar insumos</button><div><button onClick={()=>pdf("draft")}>Baixar rascunho em PDF</button><button onClick={()=>pdf("transcript")}>Baixar transcrição em PDF</button></div></div><div className="warning"><b>Rascunho — revisar e aprovar antes da publicação</b><span>Conteúdo demonstrativo, sem transcrição real do material enviado.</span></div><article className="draft printable"><p className="eyebrow">PÁGINA DE APROFUNDAMENTO · PRÉVIA</p><h1>{message||"Mensagem principal da cobertura"}</h1><p className="dek">Síntese de trabalho baseada nos campos editoriais e em uma transcrição fictícia do protótipo.</p><Draft n="01" title="O que aconteceu?">O material demonstrativo apresenta o tema, seus antecedentes e os fatos que ainda precisam ser confirmados pela redação.<blockquote>“O ponto central é entender como a decisão afeta a vida cotidiana.” — Marina Costa, analista convidada</blockquote></Draft><Draft n="02" title="Por que isso importa?">{relevance}<p className="insufficient">Confirme esta análise na transcrição real antes da publicação.</p></Draft><Draft n="03" title="O que observar daqui em diante?">{message}<blockquote>“Os próximos indicadores serão decisivos para avaliar o alcance da mudança.” — Rafael Lima, pesquisador</blockquote></Draft><section><span>04</span><div><h2>Para aprofundar o tema</h2>{recs.map(r=><a key={r.id} href={r.url}>{r.reason}<small>{r.url}</small></a>)}</div></section></article><article className="transcript printable"><p className="eyebrow">TRANSCRIÇÃO · CONTEÚDO SIMULADO</p><h1>Timecodes e trechos sugeridos</h1><p className="transcript-alert">Esta transcrição não foi extraída do arquivo enviado. Ela existe apenas para demonstrar o formato da entrega.</p>{transcript.map(x=><div className="line" key={x.t}><time>{x.t}</time><p>{x.text}</p></div>)}<h2>Trechos sugeridos para redes sociais</h2><div className="clips"><div><b>00:18 → 00:42</b><span>24 segundos</span><p>Ponto central e efeito cotidiano.</p></div><div><b>01:16 → 01:48</b><span>32 segundos</span><p>Indicadores e próximos passos.</p></div></div></article><button className="reset-print" onClick={()=>setPrintMode(null)}>Voltar à visualização completa</button></section>}
-</main>}
-function Card({n,title,desc,children}:{n:string,title:string,desc:string,children:React.ReactNode}){return <section className="card"><div className="card-head"><span>{n}</span><div><h2>{title}</h2><p>{desc}</p></div></div>{children}</section>}
-function Draft({n,title,children}:{n:string,title:string,children:React.ReactNode}){return <section><span>{n}</span><div><h2>{title}</h2><p>{children}</p></div></section>}
+
+import { ChangeEvent, FormEvent, useState } from "react";
+
+type LinkRow = { id: number; url: string };
+type Reading = { id: number; url: string; reason: string };
+type SourceMode = "file" | "link";
+
+const sampleTranscript = [
+  { time: "00:00", speaker: "Helena Duarte, analista de política", text: "O dado isolado chama atenção, mas a série histórica muda a leitura do resultado." },
+  { time: "00:18", speaker: "Marcos Vieira, economista", text: "A principal questão agora é saber se o movimento se mantém nos próximos meses." },
+  { time: "00:44", speaker: "Lia Ramos, apresentadora", text: "O público precisa distinguir uma variação pontual de uma mudança de tendência." },
+  { time: "01:08", speaker: "Helena Duarte, analista de política", text: "Há decisões em curso que ainda podem alterar o cenário apresentado no bloco." },
+  { time: "01:34", speaker: "Marcos Vieira, economista", text: "Sem a abertura dos componentes, uma conclusão definitiva seria prematura." },
+  { time: "02:02", speaker: "Lia Ramos, apresentadora", text: "A equipe seguirá acompanhando os próximos indicadores e seus efeitos concretos." },
+];
+
+const clips = [
+  { start: "00:14", end: "00:54", duration: "00:40", title: "O número e a tendência", reason: "Contrapõe o dado isolado à leitura histórica e termina com uma pergunta clara." },
+  { start: "01:04", end: "01:49", duration: "00:45", title: "Por que ainda é cedo para concluir", reason: "Reúne cautela analítica e os fatores capazes de mudar o cenário." },
+];
+
+const nextId = () => Date.now() + Math.floor(Math.random() * 999);
+function validUrl(value: string) { try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol) ? url : null; } catch { return null; } }
+function suspiciousPrivateLink(value: string) { const lower = value.toLowerCase(); return /login|signin|authuser|accounts\.google/.test(lower) || (lower.includes("drive.google.com") && !/sharing|open\?id=/.test(lower)); }
+function pdfText(value: string) { return value.replace(/[–—]/g, "-").replace(/[“”]/g, '"').replace(/…/g, "..."); }
+
+export default function Home() {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [mode, setMode] = useState<SourceMode>("file");
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [cnnLinks, setCnnLinks] = useState<LinkRow[]>([{ id: 1, url: "" }]);
+  const [readings, setReadings] = useState<Reading[]>([{ id: 1, url: "", reason: "" }]);
+  const [relevance, setRelevance] = useState("");
+  const [message, setMessage] = useState("");
+  const [errors, setErrors] = useState<string[]>([]);
+  const [progress, setProgress] = useState(0);
+  const [view, setView] = useState<"draft" | "transcript">("draft");
+
+  const sourceLabel = mode === "file" ? mediaFile?.name : mediaUrl;
+
+  function chooseFile(event: ChangeEvent<HTMLInputElement>) {
+    setMediaFile(event.target.files?.[0] ?? null);
+    setMediaUrl("");
+  }
+
+  function fillDemo() {
+    setMode("link"); setMediaFile(null); setMediaUrl("https://www.youtube.com/watch?v=material-publico-demonstrativo");
+    setCnnLinks([{ id: 1, url: "https://www.cnnbrasil.com.br/politica/" }, { id: 2, url: "https://www.cnnbrasil.com.br/economia/" }]);
+    setRelevance("O tema afeta decisões públicas e precisa ser explicado sem transformar uma variação isolada em tendência consolidada.");
+    setMessage("O público deve compreender o que o dado permite afirmar agora, quais lacunas permanecem e o que acompanhar nos próximos meses.");
+    setReadings([{ id: 1, url: "https://www.cnnbrasil.com.br/economia/", reason: "Contextualiza a série histórica citada no bloco e ajuda a separar tendência de oscilação." }]);
+    setErrors([]);
+  }
+
+  function validate() {
+    const next: string[] = [];
+    if (mode === "file" && !mediaFile) next.push("Envie um arquivo de áudio ou vídeo.");
+    if (mode === "file" && mediaFile && !(/^(audio|video)\//.test(mediaFile.type) || /\.(mp3|mpeg|mp4|mov|m4a|wav|webm)$/i.test(mediaFile.name))) next.push("Formato não aceito. Use áudio ou vídeo, incluindo .mp3 e .mpeg.");
+    if (mode === "link" && !validUrl(mediaUrl)) next.push("Informe um link público válido de áudio ou vídeo.");
+    if (mode === "link" && validUrl(mediaUrl) && suspiciousPrivateLink(mediaUrl)) next.push("Esse endereço parece exigir login ou permissão. Use um link aberto para qualquer pessoa.");
+    if (!cnnLinks.length || cnnLinks.some((item) => !validUrl(item.url))) next.push("Preencha ao menos um link CNN válido.");
+    if (relevance.trim().length < 20) next.push("Explique a relevância com pelo menos 20 caracteres.");
+    if (message.trim().length < 20) next.push("Defina a mensagem principal com pelo menos 20 caracteres.");
+    if (!readings.length || readings.some((item) => !validUrl(item.url) || item.reason.trim().length < 12)) next.push("Cada recomendação precisa de link válido e justificativa com pelo menos 12 caracteres.");
+    setErrors(next); return next.length === 0;
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault(); if (!validate()) return;
+    setStep(2); setProgress(1); window.scrollTo({ top: 0, behavior: "smooth" });
+    for (const state of [2, 3, 4]) { await new Promise((resolve) => setTimeout(resolve, 650)); setProgress(state); }
+    setStep(3); setView("draft");
+  }
+
+  async function downloadDraftPdf() {
+    const { jsPDF } = await import("jspdf"); const doc = new jsPDF({ unit: "mm", format: "a4" }); let y = 18;
+    doc.setFillColor(17, 27, 45); doc.rect(0, 0, 210, 31, "F"); doc.setTextColor(255); doc.setFontSize(18); doc.text("WW Oficina Editorial", 16, 16); doc.setFontSize(9); doc.text("RASCUNHO - REVISAR E APROVAR ANTES DA PUBLICACAO", 16, 24); doc.setTextColor(25); y = 43;
+    const sections = [
+      ["1. O que aconteceu?", "O bloco apresentou uma variacao relevante no indicador acompanhado e destacou que o resultado isolado precisa ser lido em conjunto com a serie historica. A transcricao demonstrativa indica cautela antes de tratar o movimento como tendencia."],
+      ["2. Por que isso importa?", relevance],
+      ["3. O que observar daqui em diante?", message],
+      ["4. Para aprofundar o tema", readings.map((item) => `${item.reason}\n${item.url}`).join("\n\n")],
+    ];
+    for (const [title, body] of sections) { doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.text(pdfText(title), 16, y); y += 8; doc.setFont("helvetica", "normal"); doc.setFontSize(10); const lines = doc.splitTextToSize(pdfText(body), 176); if (y + lines.length * 5 > 275) { doc.addPage(); y = 20; } doc.text(lines, 16, y); y += lines.length * 5 + 11; }
+    doc.setFontSize(8); doc.setTextColor(100); doc.text("Prototipo demonstrativo - nenhum conteudo foi publicado automaticamente.", 16, 288); doc.save("ww-rascunho-editorial.pdf");
+  }
+
+  async function downloadTranscriptPdf() {
+    const { jsPDF } = await import("jspdf"); const doc = new jsPDF({ unit: "mm", format: "a4" }); let y = 18;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.text("WW - Transcricao demonstrativa", 16, y); y += 8; doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(115); doc.text("SIMULACAO: o prototipo nao ouviu nem transcreveu o arquivo ou link enviado.", 16, y); y += 13; doc.setTextColor(25);
+    for (const item of sampleTranscript) { doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.text(`${item.time}  ${pdfText(item.speaker)}`, 16, y); y += 5; doc.setFont("helvetica", "normal"); const lines = doc.splitTextToSize(pdfText(item.text), 176); doc.text(lines, 16, y); y += lines.length * 5 + 7; }
+    y += 4; doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.text("Trechos sugeridos para redes sociais", 16, y); y += 8;
+    for (const clip of clips) { doc.setFontSize(10); doc.text(`${clip.start} - ${clip.end} (${clip.duration}) | ${pdfText(clip.title)}`, 16, y); y += 5; doc.setFont("helvetica", "normal"); const lines = doc.splitTextToSize(pdfText(clip.reason), 176); doc.text(lines, 16, y); y += lines.length * 5 + 7; doc.setFont("helvetica", "bold"); }
+    doc.save("ww-transcricao-e-trechos.pdf");
+  }
+
+  return <main>
+    <header className="topbar"><a className="brand" href="#top"><span className="brand-mark">WW</span><span>OFICINA EDITORIAL</span></a><span className="prototype">PROTÓTIPO · CONTEÚDO SIMULADO</span></header>
+    <div className="demo-alert"><b>DEMONSTRAÇÃO PÚBLICA</b><span>O protótipo não acessa nem escuta o material enviado. A transcrição, citações e timecodes são uma amostra fictícia claramente identificada.</span></div>
+    <div className="shell" id="top">
+      <aside className="rail" aria-label="Etapas">{[[1,"Insumos","Arquivos e orientação"],[2,"Processamento","Transcrição e trechos"],[3,"Entrega","Prévia e PDFs"]].map(([number,label,help]) => <div key={number} className={`rail-step ${step === number ? "active" : step > number ? "done" : ""}`}><span>0{number}</span><div><b>{label}</b><small>{help}</small></div></div>)}<div className="privacy-note"><b>Nada é publicado</b><p>Arquivos e respostas ficam somente nesta sessão. Não há CMS, armazenamento, busca externa ou autenticação.</p></div></aside>
+
+      {step === 1 && <section className="workspace"><div className="intro"><p className="eyebrow">NOVA PÁGINA DE APROFUNDAMENTO</p><h1>Do bloco ao rascunho, com cada etapa visível.</h1><p>Forneça um material autorizado e as decisões editoriais. Esta versão demonstra transcrição, seleção de trechos e entrega — sem processar mídia real.</p><button className="demo-fill" onClick={fillDemo}>Preencher exemplo para testar</button></div>
+        <form onSubmit={submit} noValidate>
+          <section className="form-card"><div className="section-title"><span>1</span><div><h2>Material de origem</h2><p>Áudio, vídeo ou link público — nunca uma transcrição pronta.</p></div></div><div className="mode-tabs"><button type="button" className={mode === "file" ? "active" : ""} onClick={() => setMode("file")}>Enviar arquivo</button><button type="button" className={mode === "link" ? "active" : ""} onClick={() => setMode("link")}>Usar link público</button></div>
+            {mode === "file" ? <label className={`media-upload ${mediaFile ? "selected" : ""}`}><input type="file" accept="audio/*,video/*,.mp3,.mpeg,.m4a" onChange={chooseFile}/><span>ÁUDIO / VÍDEO</span><b>{mediaFile?.name ?? "Escolha um arquivo"}</b><small>MP3, MPEG, MP4, MOV, M4A, WAV ou WebM</small></label> : <label className="public-link"><b>LINK ABERTO DO MATERIAL</b><input value={mediaUrl} onChange={(event) => setMediaUrl(event.target.value)} placeholder="https://youtube.com/... ou link público do Drive"/><small>Endereços que indiquem login ou permissão serão recusados.</small></label>}
+          </section>
+          <section className="form-card"><div className="section-title"><span>2</span><div><h2>Conteúdos CNN selecionados</h2><p>Adicione ou remova os links escolhidos pela redação.</p></div></div><div className="stack">{cnnLinks.map((item,index)=><div className="row" key={item.id}><label><small>LINK {index+1}</small><input value={item.url} onChange={(e)=>setCnnLinks(cnnLinks.map((link)=>link.id===item.id?{...link,url:e.target.value}:link))} placeholder="https://www.cnnbrasil.com.br/..."/></label>{cnnLinks.length>1&&<button type="button" className="remove" onClick={()=>setCnnLinks(cnnLinks.filter((link)=>link.id!==item.id))}>Remover</button>}</div>)}</div><button type="button" className="add" onClick={()=>setCnnLinks([...cnnLinks,{id:nextId(),url:""}])}>+ Adicionar conteúdo</button></section>
+          <section className="form-card"><div className="section-title"><span>3</span><div><h2>Orientação editorial</h2><p>As duas respostas são obrigatórias.</p></div></div><label className="question"><b>Por que este tema é relevante para o público? *</b><textarea value={relevance} onChange={(e)=>setRelevance(e.target.value)} maxLength={600}/><small>{relevance.length}/600</small></label><label className="question"><b>Qual é a principal mensagem que o público deve levar desta cobertura? *</b><textarea value={message} onChange={(e)=>setMessage(e.target.value)} maxLength={600}/><small>{message.length}/600</small></label></section>
+          <section className="form-card"><div className="section-title"><span>4</span><div><h2>Para aprofundar</h2><p>Somente estas recomendações aparecerão na quarta seção.</p></div></div>{readings.map((item,index)=><div className="recommendation" key={item.id}><div className="rec-head"><b>RECOMENDAÇÃO {index+1}</b>{readings.length>1&&<button type="button" className="remove" onClick={()=>setReadings(readings.filter((reading)=>reading.id!==item.id))}>Remover</button>}</div><input value={item.url} onChange={(e)=>setReadings(readings.map((reading)=>reading.id===item.id?{...reading,url:e.target.value}:reading))} placeholder="Link da leitura"/><textarea value={item.reason} onChange={(e)=>setReadings(readings.map((reading)=>reading.id===item.id?{...reading,reason:e.target.value}:reading))} placeholder="Por que esta leitura ajuda?"/></div>)}<button type="button" className="add" onClick={()=>setReadings([...readings,{id:nextId(),url:"",reason:""}])}>+ Adicionar recomendação</button></section>
+          {errors.length>0&&<div className="error-box" role="alert"><b>Revise antes de gerar:</b><ul>{errors.map((error)=><li key={error}>{error}</li>)}</ul></div>}<div className="submit-area"><p>A mídia não sai do navegador nesta demonstração.</p><button className="primary">Gerar página →</button></div>
+        </form>
+      </section>}
+
+      {step === 2 && <section className="processing"><p className="eyebrow">PROCESSAMENTO DEMONSTRATIVO</p><h1>Organizando o bloco<br/>em camadas editoriais.</h1><div className="process-card">{["Validando o material público","Transcrevendo e marcando timecodes","Selecionando trechos de até 1 minuto","Estruturando a prévia e os PDFs"].map((label,index)=><div key={label} className={progress>index?"complete":progress===index?"current":""}><span>{progress>index?"✓":`0${index+1}`}</span><b>{label}</b><small>{progress>index?"Concluído":progress===index?"Em andamento…":"Aguardando"}</small></div>)}</div><p className="simulation-note">Simulação: nenhuma mídia está sendo transcrita. O resultado usa a amostra fictícia incorporada ao protótipo.</p></section>}
+
+      {step === 3 && <section className="delivery"><div className="delivery-head"><div><p className="eyebrow">ENTREGA DA SESSÃO</p><h1>Rascunho pronto para revisão.</h1><p>Origem: {sourceLabel}</p></div><button className="back" onClick={()=>setStep(1)}>← Editar insumos</button></div><div className="draft-warning"><b>Rascunho — revisar e aprovar antes da publicação</b><span>Nenhum conteúdo foi enviado a CMS ou publicado automaticamente.</span></div><div className="download-row"><button onClick={downloadDraftPdf}><span>PDF 01</span><b>Baixar rascunho principal</b><small>Quatro seções + aviso editorial</small></button><button onClick={downloadTranscriptPdf}><span>PDF 02</span><b>Baixar transcrição e trechos</b><small>Timecodes + sugestões sociais</small></button></div><nav className="output-tabs"><button className={view==="draft"?"active":""} onClick={()=>setView("draft")}>Prévia da página</button><button className={view==="transcript"?"active":""} onClick={()=>setView("transcript")}>Transcrição e trechos</button></nav>
+        {view === "draft" ? <article className="article-preview"><p className="eyebrow">PÁGINA DE APROFUNDAMENTO · PRÉVIA</p><h1>{message.replace(/[.!?]$/," ")}</h1><p className="dek">Síntese demonstrativa baseada nas orientações preenchidas e em uma transcrição fictícia do protótipo.</p><div className="source-strip"><b>Materiais usados</b><span>{cnnLinks.length} conteúdo(s) CNN</span><span>{readings.length} leitura(s)</span><span>transcrição simulada</span></div><section><span className="section-number">01</span><h2>O que aconteceu?</h2><p>O bloco apresentou uma variação relevante no indicador acompanhado e ressaltou que o dado isolado precisa ser lido junto da série histórica.</p><blockquote>“O dado isolado chama atenção, mas a série histórica muda a leitura do resultado.” — Helena Duarte, analista de política</blockquote></section><section><span className="section-number">02</span><h2>Por que isso importa?</h2><p>{relevance}</p><blockquote>“A principal questão agora é saber se o movimento se mantém nos próximos meses.” — Marcos Vieira, economista</blockquote></section><section><span className="section-number">03</span><h2>O que observar daqui em diante?</h2><p>{message}</p><blockquote>“O público precisa distinguir uma variação pontual de uma mudança de tendência.” — Lia Ramos, apresentadora</blockquote></section><section><span className="section-number">04</span><h2>Para aprofundar o tema</h2><div className="reading-list">{readings.map((item)=><a key={item.id} href={item.url} target="_blank" rel="noreferrer"><span>{validUrl(item.url)?.hostname}</span><b>{item.reason}</b><small>Abrir leitura ↗</small></a>)}</div></section></article> : <div className="transcript-view"><div className="simulation-note"><b>TRANSCRIÇÃO FICTÍCIA PARA TESTE</b> O sistema não ouviu o material informado. Os nomes, falas e timecodes abaixo são demonstrativos.</div><div className="transcript-list">{sampleTranscript.map((item)=><article key={item.time}><time>{item.time}</time><div><b>{item.speaker}</b><p>{item.text}</p></div></article>)}</div><h2>Trechos sugeridos para redes sociais</h2><div className="clip-grid">{clips.map((clip)=><article key={clip.start}><span>{clip.start} → {clip.end}</span><b>{clip.title}</b><p>{clip.reason}</p><small>Duração {clip.duration} · abaixo de 1 minuto</small></article>)}</div></div>}
+      </section>}
+    </div>
+  </main>;
+}
