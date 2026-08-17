@@ -9,7 +9,13 @@ async function run(request) {
 }
 
 test("renders the functional editorial workflow", async () => {
-  const response = await run(new Request("http://localhost/", { headers: { accept: "text/html" } }));
+  const response = await run(new Request("https://ww.example/", {
+    headers: {
+      accept: "text/html",
+      "oai-authenticated-user-id": "test-user",
+      "oai-authenticated-user-email": "editor@example.com",
+    },
+  }));
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Do bloco ao rascunho, com origem verificável/);
@@ -19,6 +25,12 @@ test("renders the functional editorial workflow", async () => {
   assert.match(html, /Por que este tema é relevante/);
   assert.match(html, /Qual é a principal mensagem/);
   assert.doesNotMatch(html, /DEMONSTRAÇÃO PÚBLICA|CONTEÚDO SIMULADO|setTimeout/);
+});
+
+test("redirects anonymous visitors to ChatGPT sign-in", async () => {
+  const response = await run(new Request("https://ww.example/", { headers: { accept: "text/html" } }));
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get("location"), "https://ww.example/signin-with-chatgpt?return_to=%2F");
 });
 
 test("exposes server-side validation for the transcription route", async () => {

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
+import { requireChatGPTUser } from "./chatgpt-auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,11 +30,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export const dynamic = "force-dynamic";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const requestHeaders = await headers();
+  const hostname = (requestHeaders.get("host") ?? "").split(":")[0];
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  if (!isLocal) await requireChatGPTUser("/");
+
   return (
     <html lang="pt-BR">
       <body
