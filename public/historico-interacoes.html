@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/favicon.svg" />
+    <title>Registro de interações no Slack</title>
+    <style>
+      :root {
+        --ink: #17211d;
+        --muted: #66716b;
+        --paper: #f2f0e9;
+        --surface: #fffef9;
+        --green: #164b3c;
+        --rust: #c95e3d;
+        --blue: #3366a8;
+        --line: #cbc9bf;
+        --soft-line: #dfddd4;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; color: var(--ink); background: var(--paper); font: 14px/1.55 Arial, sans-serif; }
+      a { color: inherit; }
+      .wrap { width: min(1160px, calc(100% - 40px)); margin: 0 auto; }
+      .top { background: var(--surface); border-bottom: 1px solid var(--line); }
+      .event { padding: 24px 0 20px; border-bottom: 1px solid var(--soft-line); }
+      .event strong, .event span { display: block; }
+      .event strong { margin-bottom: 3px; }
+      .event span { color: var(--muted); font-size: 12px; }
+      .title { padding: 44px 0 46px; }
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: 12px; font: 400 clamp(38px, 5vw, 58px)/1.04 Georgia, serif; letter-spacing: -.035em; }
+      .subtitle { margin: 0; color: var(--muted); }
+      .page { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; padding: 38px 0 72px; }
+      .controls { grid-column: 1/-1; display: flex; gap: 10px; padding: 12px; background: var(--surface); border: 1px solid var(--line); }
+      .search { flex: 1; min-width: 210px; padding: 10px 12px; border: 1px solid var(--line); background: #fff; font: inherit; }
+      .filters { display: flex; flex-wrap: wrap; gap: 7px; }
+      .filter { padding: 8px 12px; border: 1px solid var(--line); border-radius: 99px; background: transparent; cursor: pointer; font-size: 11px; }
+      .filter.active { color: #fff; background: var(--ink); border-color: var(--ink); }
+      .timeline { position: relative; padding-left: 43px; }
+      .timeline::before { content: ""; position: absolute; top: 14px; bottom: 10px; left: 13px; width: 1px; background: var(--line); }
+      .phase { position: relative; margin: 10px 0 18px -43px; padding-left: 43px; color: var(--muted); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
+      .phase::before { content: ""; position: absolute; left: 7px; top: 3px; width: 12px; height: 12px; border: 2px solid var(--paper); border-radius: 50%; background: var(--rust); box-shadow: 0 0 0 1px var(--rust); }
+      .entry { --accent: var(--green); position: relative; margin-bottom: 14px; padding: 19px 20px; background: var(--surface); border: 1px solid var(--soft-line); }
+      .entry::before { content: ""; position: absolute; left: -36px; top: 25px; width: 11px; height: 11px; border: 3px solid var(--paper); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+      .entry[data-kind="status"] { --accent: #808985; }
+      .entry[data-kind="projeto"] { --accent: var(--rust); border-left: 4px solid var(--rust); }
+      .entry[data-role="app"] { --accent: var(--blue); border-left: 4px solid var(--blue); }
+      .head { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+      .identity { display: flex; align-items: center; gap: 9px; }
+      .avatar { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--accent); font-size: 10px; font-weight: bold; }
+      .identity strong, .identity small { display: block; }
+      .identity strong { font-size: 13px; }
+      .identity small, time { color: var(--muted); font-size: 10px; }
+      time { white-space: nowrap; }
+      .body { color: #303b36; white-space: pre-wrap; overflow-wrap: anywhere; }
+      .body p:last-child { margin-bottom: 0; }
+      details { margin-top: 3px; }
+      summary { color: var(--green); cursor: pointer; font-weight: bold; }
+      .long-preview { margin-bottom: 11px; color: var(--muted); }
+      .foot { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 14px; color: var(--muted); font-size: 10px; }
+      .tag { padding: 3px 7px; border: 1px solid var(--soft-line); border-radius: 99px; text-transform: uppercase; letter-spacing: .06em; }
+      .permalink { color: var(--green); font-weight: bold; text-decoration: none; }
+      .permalink:hover { text-decoration: underline; }
+      .thread-badge { margin-left: 6px; color: var(--blue); }
+      .aside { position: relative; }
+      .aside-inner { position: sticky; top: 20px; display: grid; gap: 16px; }
+      .card { padding: 23px; background: var(--surface); border: 1px solid var(--line); }
+      .card h2 { margin-bottom: 16px; font: 400 25px/1.08 Georgia, serif; letter-spacing: -.02em; }
+      .decisions { margin: 0; padding: 0; list-style: none; }
+      .decisions li { position: relative; padding: 11px 0 11px 17px; border-top: 1px solid var(--soft-line); font-size: 12px; }
+      .decisions li::before { content: ""; position: absolute; left: 0; top: 18px; width: 6px; height: 6px; border-radius: 50%; background: var(--rust); }
+      .status-card { color: #fff; background: var(--ink); border-color: var(--ink); }
+      .status-card h2 { color: #fff; }
+      .status-card strong { display: block; margin-bottom: 8px; font: 400 22px Georgia, serif; }
+      .status-card p { margin: 0; color: #c8d8d1; font-size: 12px; }
+      .source { margin-top: 26px; padding-top: 16px; color: var(--muted); border-top: 1px solid var(--line); font-size: 11px; }
+      .empty { display: none; padding: 32px; color: var(--muted); text-align: center; border: 1px dashed var(--line); background: var(--surface); }
+      body > footer { padding: 24px 20px; color: #b9c8c1; background: var(--ink); text-align: center; font-size: 10px; }
+
+      @media (max-width: 880px) {
+        .page { grid-template-columns: 1fr; }
+        .controls { align-items: stretch; flex-direction: column; }
+        .aside-inner { position: static; grid-template-columns: repeat(2, 1fr); }
+      }
+
+      @media (max-width: 620px) {
+        .wrap { width: min(100% - 28px, 1160px); }
+        .title { padding: 34px 0 38px; }
+        h1 { font-size: 38px; }
+        .timeline { padding-left: 27px; }
+        .timeline::before { left: 5px; }
+        .phase { margin-left: -27px; padding-left: 27px; }
+        .phase::before { left: -1px; }
+        .entry::before { left: -29px; }
+        .head, .foot { align-items: flex-start; flex-direction: column; gap: 7px; }
+        .aside-inner { grid-template-columns: 1fr; }
+      }
+
+      @media print {
+        body, .top, .card, .entry { background: #fff; }
+        .controls { display: none; }
+        .page { display: block; width: 100%; }
+        .entry, .card { break-inside: avoid; }
+        .aside { margin: 28px 0 0 43px; }
+        .aside-inner { display: grid; grid-template-columns: 1fr 1fr; }
+        details:not([open]) > :not(summary) { display: block; }
+        body > footer { color: var(--ink); background: #fff; border-top: 1px solid var(--line); }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <div class="event wrap">
+        <strong>Hackaton Codesinfo - 21º Congresso da Abraji</strong>
+        <span id="workshop-line"></span>
+      </div>
+      <div class="title wrap">
+        <h1>Registro de interações no Slack</h1>
+        <p class="subtitle" id="subtitle"></p>
+      </div>
+    </header>
+
+    <main class="page wrap">
+      <section class="controls" aria-label="Filtros do histórico">
+        <input class="search" id="search" type="search" placeholder="Buscar no histórico…" aria-label="Buscar no histórico" />
+        <div class="filters" aria-label="Filtrar por tipo">
+          <button class="filter active" type="button" data-filter="todos">Todos</button>
+          <button class="filter" type="button" data-filter="conversa">Conversa</button>
+          <button class="filter" type="button" data-filter="projeto">Projeto</button>
+          <button class="filter" type="button" data-filter="status">Status</button>
+        </div>
+      </section>
+
+      <section aria-label="Linha do tempo das mensagens">
+        <div class="timeline" id="timeline"></div>
+        <p class="empty" id="empty">Nenhum registro corresponde aos filtros atuais.</p>
+        <p class="source" id="source"></p>
+      </section>
+
+      <aside class="aside" aria-label="Síntese do histórico">
+        <div class="aside-inner">
+          <section class="card">
+            <h2>Decisões registradas</h2>
+            <ul class="decisions" id="decisions"></ul>
+          </section>
+          <section class="card status-card">
+            <h2>Estado ao fim do recorte</h2>
+            <strong id="status-title"></strong>
+            <p id="status-text"></p>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <footer id="footer"></footer>
+    <script src="./historico-interacoes.data.js"></script>
+    <script>
+      (() => {
+        const data = window.HISTORY;
+        if (!data) throw new Error("Dados do histórico não encontrados.");
+        document.title = `Registro de interações no Slack — grupo ${data.group}`;
+        document.querySelector("#workshop-line").textContent = `Oficina de construção com IA - grupo ${data.group}`;
+        document.querySelector("#subtitle").innerHTML = `Canal <strong>#oficina-grupo-${data.group}</strong> · ${data.dateLabel}`;
+        document.querySelector("#source").innerHTML = `Fonte: conteúdo textual exibido no canal <strong>#oficina-grupo-${data.group}</strong> do workspace Codesinfo–Abraji. Mensagens editadas refletem o texto atual visível no Slack. Coleta realizada em ${data.collectedLabel}.`;
+        document.querySelector("#footer").textContent = `Hackaton Codesinfo · 21º Congresso da Abraji · #oficina-grupo-${data.group}`;
+        document.querySelector("#status-title").textContent = data.status.title;
+        document.querySelector("#status-text").textContent = data.status.text;
+        document.querySelector("#decisions").innerHTML = data.decisions.map((item) => `<li>${item}</li>`).join("");
+
+        const escape = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        const initials = (name) => name === "Oficina Codex" ? "OC" : name === "Sistema da oficina" ? "SI" : name.split(/\s|\./).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+        const roleLabel = { app: "app", pessoa: "participante", sistema: "sistema" };
+        const kindLabel = { conversa: "conversa", projeto: "projeto", status: "status" };
+        const timeline = document.querySelector("#timeline");
+        const phaseOrder = [...new Set(data.messages.map((message) => message.phase))];
+
+        phaseOrder.forEach((phase) => {
+          const heading = document.createElement("h2");
+          heading.className = "phase";
+          heading.dataset.phase = phase;
+          heading.textContent = data.phases[phase];
+          timeline.appendChild(heading);
+          data.messages.filter((message) => message.phase === phase).forEach((message) => {
+            const article = document.createElement("article");
+            article.className = "entry";
+            article.dataset.kind = message.kind;
+            article.dataset.role = message.role;
+            article.dataset.phase = message.phase;
+            article.dataset.search = `${message.author} ${message.body}`;
+            const body = escape(message.body);
+            const long = message.body.length > 950;
+            const content = long
+              ? `<p class="long-preview">${escape(message.body.slice(0, 260)).replace(/\n/g, " ")}…</p><details><summary>Ver mensagem completa</summary><div class="body">${body}</div></details>`
+              : `<div class="body">${body}</div>`;
+            article.innerHTML = `<header class="head"><div class="identity"><span class="avatar" aria-hidden="true">${initials(message.author)}</span><span><strong>${escape(message.author)}</strong><small>${roleLabel[message.role]}</small></span></div><time datetime="${message.datetime}">${message.time}</time></header>${content}<footer class="foot"><span><span class="tag">${kindLabel[message.kind]}${message.edited ? " · editado" : ""}</span>${message.thread ? '<span class="thread-badge">thread</span>' : ""}</span><a class="permalink" href="${message.url}" target="_blank" rel="noreferrer">Abrir no Slack ↗</a></footer>`;
+            timeline.appendChild(article);
+          });
+        });
+
+        const entries = [...document.querySelectorAll(".entry")];
+        const phases = [...document.querySelectorAll(".phase")];
+        const filters = [...document.querySelectorAll(".filter")];
+        const search = document.querySelector("#search");
+        const empty = document.querySelector("#empty");
+        let activeFilter = "todos";
+        const normalize = (value) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const update = () => {
+          const query = normalize(search.value.trim());
+          let visible = 0;
+          entries.forEach((entry) => {
+            const show = (activeFilter === "todos" || entry.dataset.kind === activeFilter) && (!query || normalize(entry.dataset.search).includes(query));
+            entry.hidden = !show;
+            if (show) visible += 1;
+          });
+          phases.forEach((phase) => { phase.hidden = !entries.some((entry) => entry.dataset.phase === phase.dataset.phase && !entry.hidden); });
+          empty.style.display = visible ? "none" : "block";
+        };
+        filters.forEach((button) => button.addEventListener("click", () => {
+          activeFilter = button.dataset.filter;
+          filters.forEach((item) => item.classList.toggle("active", item === button));
+          update();
+        }));
+        search.addEventListener("input", update);
+      })();
+    </script>
+  </body>
+</html>
